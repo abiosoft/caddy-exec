@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
@@ -81,6 +82,22 @@ func (m Command) Validate() error {
 
 	if err := isValidDir(m.Directory); err != nil {
 		return err
+	}
+	return nil
+}
+
+func isValidDir(dir string) error {
+	// current directory is valid
+	if dir == "" {
+		return nil
+	}
+
+	s, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
+	if !s.IsDir() {
+		return fmt.Errorf("not a directory '%s'", dir)
 	}
 	return nil
 }

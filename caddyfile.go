@@ -1,9 +1,6 @@
 package command
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
@@ -56,21 +53,5 @@ func (m *Command) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 		}
 	}
 
-	return nil
-}
-
-func isValidDir(dir string) error {
-	// current directory is valid
-	if dir == "" {
-		return nil
-	}
-
-	s, err := os.Stat(dir)
-	if err != nil {
-		return err
-	}
-	if !s.IsDir() {
-		return fmt.Errorf("not a directory '%s'", dir)
-	}
 	return nil
 }
