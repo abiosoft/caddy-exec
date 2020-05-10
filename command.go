@@ -98,7 +98,7 @@ func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddy
 // UnmarshalCaddyfile configures the plugin from Caddyfile.
 // Syntax:
 //
-//   command <command> [args...] {
+//   command [<matcher>] <command> [args...] {
 //       args        <text>...
 //       directory   <text>
 //       timeout     <duration>

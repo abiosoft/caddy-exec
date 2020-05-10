@@ -13,7 +13,7 @@ xcaddy build v2.0.0 \
 
 ### Caddyfile
 ```
-command <command> [args...] {
+command [<matcher>] <command> [args...] {
     args        args...
     directory   directory
     timeout     timeout
@@ -21,6 +21,7 @@ command <command> [args...] {
 }
 ```
 * **command** - the command to run
+* **matcher** - [caddyfile matcher](https://caddyserver.com/docs/caddyfile/matchers) 
 * **args...** - the command arguments
 * **directory** - the directory to run the command from
 * **timeout** - the timeout to terminate the command process. Default is 10s.
