@@ -86,6 +86,7 @@ func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddy
 	}
 	err := m.run()
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		resp.Error = err.Error()
 	} else {
 		resp.Status = "success"
@@ -97,15 +98,13 @@ func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddy
 // UnmarshalCaddyfile configures the plugin from Caddyfile.
 // Syntax:
 //
-//		command <command> [args...] {
-//      	args  		<text>...
-//			directory 	<text>
-//			timeout		<duration>
-//			foreground
-//     }
+//   command <command> [args...] {
+//       args        <text>...
+//       directory   <text>
+//       timeout     <duration>
+//       foreground
+//   }
 //
-// If there is just one argument (other than the matcher), it is considered
-// to be a status code if it's a valid positive integer of 3 digits.
 func (m *Middleware) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	if !d.Next() {
 		return d.ArgErr()
@@ -159,18 +158,12 @@ func isValidDir(dir string) error {
 	return nil
 }
 
-func (m *Middleware) run() (e error) {
-	// TODO: figure out how to handle this better
-	// maybe fallback to standard os.Std[err|out].
-	// zap logger always returning "short write" error when successful
-	defer func() {
-		if e != nil && e.Error() == "short write" {
-			e = nil
-		}
-	}()
+func (m *Middleware) run() error {
+	cmdInfo := zap.Any("command", append([]string{m.Command}, m.Args...))
+	log := m.log.With(cmdInfo)
+	startTime := time.Now()
 
 	cmd := exec.Command(m.Command, m.Args...)
-	m.log.Info("using timeout", zap.Any("timeout", m.timeout.String()))
 
 	done := make(chan struct{}, 1)
 
@@ -196,32 +189,35 @@ func (m *Middleware) run() (e error) {
 		cmd.Dir = m.Directory
 	}
 
-	// start in foreground
-	if m.Foreground {
-		err := cmd.Run()
+	wait := func(err error) error {
+		// only wait if start was successful
+		if cmd.Process != nil {
+			// err is empty, we can reuse it without losing any info
+			err = cmd.Wait()
+		}
 		done <- struct{}{}
-		return err
-	}
 
-	// run normally in background
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
-
-	// wait for command in the background
-	go func() {
-		err := cmd.Wait()
-		done <- struct{}{}
+		duration := time.Since(startTime).String()
+		log = log.With(zap.Any("duration", duration))
 
 		if err != nil {
-			m.log.Error("command exit", zap.Any("error", err))
-			return
+			log.Error("exit", zap.Any("error", err))
+			return err
 		}
-		m.log.Info("command exit success")
-	}()
 
-	return nil
+		log.Info("exit", zap.Any("command", m.Command))
+		return nil
+	}
+
+	// start command
+	err := cmd.Start()
+
+	if m.Foreground {
+		return wait(err)
+	}
+
+	go wait(err)
+	return err
 }
 
 // parseCaddyfile unmarshals tokens from h into a new Middleware.
