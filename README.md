@@ -1,19 +1,21 @@
-# caddy-command
+# caddy-exec
 
-Caddy v2 module for running one-off commands at an endpoint.
+[WIP] 
+
+Caddy v2 module for running one-off commands.
 
 ## Installation
 
 ```
 xcaddy build v2.0.0 \
-    --with github.com/abiosoft/caddy-command
+    --with github.com/abiosoft/caddy-exec
 ```
 
 ## Usage 
 
 ### Caddyfile
 ```
-command [<matcher>] <command> [args...] {
+exec [<matcher>] <command> [args...] {
     args        args...
     directory   directory
     timeout     timeout
@@ -29,12 +31,12 @@ command [<matcher>] <command> [args...] {
 
 #### Example
 
-`command` can be the last action of a route block.
+`exec` can be the last action of a route block.
 
 ```
 route /generate {
     ... # other directives e.g. for authentication
-    command hugo generate --destination=/home/user/site/public
+    exec hugo generate --destination=/home/user/site/public
 }
 ```
 
@@ -54,7 +56,7 @@ route /generate {
                 "--destination=/home/user/site/public"
               ],
               "foreground": true,
-              "handler": "command",
+              "handler": "exec",
               "timeout": "5s"
             }
           ]

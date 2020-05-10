@@ -4,11 +4,25 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
+// Handler module command runner as a http middleware.
+type Handler struct {
+	Exec
+}
+
+// CaddyModule returns the Caddy module information.
+func (Handler) CaddyModule() caddy.ModuleInfo {
+	return caddy.ModuleInfo{
+		ID:  "http.handlers.exec",
+		New: func() caddy.Module { return new(Handler) },
+	}
+}
+
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
-func (m Command) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+func (m Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	var resp struct {
 		Status string `json:"status,omitempty"`
 		Error  string `json:"error,omitempty"`

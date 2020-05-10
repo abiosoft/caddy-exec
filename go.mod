@@ -1,4 +1,4 @@
-module github.com/abiosoft/caddy-command
+module github.com/abiosoft/caddy-exec
 
 go 1.14
 

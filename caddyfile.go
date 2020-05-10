@@ -6,9 +6,9 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
-// parseCaddyfile unmarshals tokens from h into a new Middleware.
-func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	var m Command
+// parseHandlerCaddyfile unmarshals tokens from h into a new Middleware.
+func parseHandlerCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+	var m Handler
 	err := m.UnmarshalCaddyfile(h.Dispenser)
 	return m, err
 }
@@ -23,7 +23,7 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 //       foreground
 //   }
 //
-func (m *Command) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+func (m *Exec) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	if !d.Next() {
 		return d.ArgErr()
 	}

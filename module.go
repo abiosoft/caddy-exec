@@ -14,19 +14,19 @@ import (
 
 // Interface guards
 var (
-	_ caddy.Provisioner           = (*Command)(nil)
-	_ caddy.Validator             = (*Command)(nil)
-	_ caddyhttp.MiddlewareHandler = (*Command)(nil)
-	_ caddyfile.Unmarshaler       = (*Command)(nil)
+	_ caddy.Provisioner           = (*Exec)(nil)
+	_ caddy.Validator             = (*Exec)(nil)
+	_ caddyhttp.MiddlewareHandler = (*Handler)(nil)
+	_ caddyfile.Unmarshaler       = (*Exec)(nil)
 )
 
 func init() {
-	caddy.RegisterModule(Command{})
-	httpcaddyfile.RegisterHandlerDirective("command", parseCaddyfile)
+	caddy.RegisterModule(Handler{})
+	httpcaddyfile.RegisterHandlerDirective("exec", parseHandlerCaddyfile)
 }
 
-// Command module implements an HTTP handler that runs a shell command.
-type Command struct {
+// Exec module implements an HTTP handler that runs a shell command.
+type Exec struct {
 	// The command to run.
 	Command string `json:"command,omitempty"`
 	// The command args.
@@ -48,15 +48,15 @@ type Command struct {
 }
 
 // CaddyModule returns the Caddy module information.
-func (Command) CaddyModule() caddy.ModuleInfo {
+func (Exec) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "http.handlers.command",
-		New: func() caddy.Module { return new(Command) },
+		ID:  "exec",
+		New: func() caddy.Module { return new(Exec) },
 	}
 }
 
 // Provision implements caddy.Provisioner.
-func (m *Command) Provision(ctx caddy.Context) error {
+func (m *Exec) Provision(ctx caddy.Context) error {
 	m.log = ctx.Logger(m)
 
 	if m.Timeout == "" {
@@ -75,7 +75,7 @@ func (m *Command) Provision(ctx caddy.Context) error {
 }
 
 // Validate implements caddy.Validator.
-func (m Command) Validate() error {
+func (m Exec) Validate() error {
 	if m.Command == "" {
 		return fmt.Errorf("command is required")
 	}

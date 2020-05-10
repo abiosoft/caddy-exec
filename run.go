@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (m *Command) run() error {
+func (m *Exec) run() error {
 	cmdInfo := zap.Any("command", append([]string{m.Command}, m.Args...))
 	log := m.log.With(cmdInfo)
 	startTime := time.Now()
@@ -47,14 +47,14 @@ func (m *Command) run() error {
 		}
 		done <- struct{}{}
 
-		log = log.With(zap.Duration("duration", time.Since(startTime)))
+		log = log.With(zap.Duration("duration", time.Since(startTime))).Named("exit")
 
 		if err != nil {
-			log.Error("exit", zap.Error(err))
+			log.Error("", zap.Error(err))
 			return err
 		}
 
-		log.Info("exit")
+		log.Info("")
 		return nil
 	}
 
@@ -80,8 +80,8 @@ type logWriter struct {
 	std *log.Logger
 }
 
-func newLogWriter(m *Command) *logWriter {
-	return &logWriter{std: zap.NewStdLog(m.log.Named(m.Command))}
+func newLogWriter(m *Exec) *logWriter {
+	return &logWriter{std: zap.NewStdLog(m.log.Named("cmd").Named(m.Command))}
 }
 
 func (z *logWriter) Write(b []byte) (int, error) {
