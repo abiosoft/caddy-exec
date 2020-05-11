@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (m *Exec) run() error {
+func (m *moduleConfig) run() error {
 	cmdInfo := zap.Any("command", append([]string{m.Command}, m.Args...))
 	log := m.log.With(cmdInfo)
 	startTime := time.Now()
@@ -80,7 +80,7 @@ type logWriter struct {
 	std *log.Logger
 }
 
-func newLogWriter(m *Exec) *logWriter {
+func newLogWriter(m *moduleConfig) *logWriter {
 	return &logWriter{std: zap.NewStdLog(m.log.Named("cmd").Named(m.Command))}
 }
 

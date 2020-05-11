@@ -6,27 +6,11 @@ import (
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
-	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
-	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"go.uber.org/zap"
 )
 
-// Interface guards
-var (
-	_ caddy.Provisioner           = (*Exec)(nil)
-	_ caddy.Validator             = (*Exec)(nil)
-	_ caddyhttp.MiddlewareHandler = (*Handler)(nil)
-	_ caddyfile.Unmarshaler       = (*Exec)(nil)
-)
-
-func init() {
-	caddy.RegisterModule(Handler{})
-	httpcaddyfile.RegisterHandlerDirective("exec", parseHandlerCaddyfile)
-}
-
-// Exec module implements an HTTP handler that runs a shell command.
-type Exec struct {
+// moduleConfig is the module configuration
+type moduleConfig struct {
 	// The command to run.
 	Command string `json:"command,omitempty"`
 	// The command args.
@@ -41,23 +25,38 @@ type Exec struct {
 	// Timeout for the command. The command will be killed
 	// after timeout has elapsed if it is still running.
 	// Defaults to 10s.
-	Timeout string `json:"timeout,omitempty"`
-
+	Timeout string        `json:"timeout,omitempty"`
 	timeout time.Duration // for ease of use after parsing
+
+	// If the command should run at startup.
+	Startup bool `json:"startup,omitempty"`
+	// If the command should run at shutdown.
+	Shutdown bool `json:"shutdown,omitempty"`
+
+	// run at startup/shutdown
+	handler bool
 	log     *zap.Logger
 }
 
-// CaddyModule returns the Caddy module information.
-func (Exec) CaddyModule() caddy.ModuleInfo {
-	return caddy.ModuleInfo{
-		ID:  "exec",
-		New: func() caddy.Module { return new(Exec) },
+// empty returns if the config is empty.
+func (m moduleConfig) empty() bool {
+	switch {
+	case m.Command != "":
+	case m.Args != nil:
+	case m.Directory != "":
+	case m.Timeout != "":
+	case m.Foreground:
+	case m.Startup:
+	case m.Shutdown:
+	default:
+		return true
 	}
+	return false
 }
 
 // Provision implements caddy.Provisioner.
-func (m *Exec) Provision(ctx caddy.Context) error {
-	m.log = ctx.Logger(m)
+func (m *moduleConfig) provision(ctx caddy.Context, cm caddy.Module) error {
+	m.log = ctx.Logger(cm)
 
 	if m.Timeout == "" {
 		m.Timeout = "10s"
@@ -75,7 +74,7 @@ func (m *Exec) Provision(ctx caddy.Context) error {
 }
 
 // Validate implements caddy.Validator.
-func (m Exec) Validate() error {
+func (m moduleConfig) Validate() error {
 	if m.Command == "" {
 		return fmt.Errorf("command is required")
 	}
