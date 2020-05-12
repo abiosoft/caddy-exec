@@ -80,7 +80,6 @@ func (a App) Start() error {
 }
 
 // Stop stops the app.
-// TODO: maybe leverage caddy.Destructor to track shutdown.
 func (a *App) Stop() error {
 	count := atomic.AddInt32(&lifeCycle, -1)
 	if count > 0 {

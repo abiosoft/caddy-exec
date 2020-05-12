@@ -58,7 +58,7 @@ route is recommended for `exec`.
 
 1. As a top level app for `startup` and `shutdown` commands.
 
-```json
+```jsonc
 {
   "apps": {
     "http": { ... },
@@ -75,8 +75,8 @@ route is recommended for `exec`.
             "generate",
             "--destination=/home/user/site/public"
           ],
-          // when to run the command, one of 'startup' or 'shutdown'
-          "at": "startup",
+          // when to run the command, can include 'startup' or 'shutdown'
+          "at": ["startup"],
 
           // [optional] directory to run the command from. Default is the current directory.
           "directory": "",
@@ -94,7 +94,7 @@ route is recommended for `exec`.
 
 2. As an handler within a route for commands that get triggered by an http endpoint.
 
-```json
+```jsonc
 
 {
   ...
@@ -127,7 +127,7 @@ route is recommended for `exec`.
   ]
 }
 ```
-## Dyanmic Configuration
+## Dynamic Configuration
 
 Caddy supports dynamic zero-downtime configuration reloads and it is possible to modify `exec`'s configurations at runtime.
 
@@ -135,6 +135,6 @@ Caddy supports dynamic zero-downtime configuration reloads and it is possible to
 
 Therefore, you are recommended to dynamically configure only commands triggered by http endpoints for more predictable behaviour.
 
-### License
+## License
 
 Apache 2
