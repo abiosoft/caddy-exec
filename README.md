@@ -1,8 +1,6 @@
 # caddy-exec
 
-[WIP] 
-
-Caddy v2 module for running one-off commands.
+Caddy v2 module for running one-off commands. 
 
 ## Installation
 
@@ -13,22 +11,32 @@ xcaddy build v2.0.0 \
 
 ## Usage 
 
+Commands can be configured to be triggered by an http endpoint or during startup and shutdown.
+
+They can also be configured to run in the background or foreground and to be terminated after a timeout. 
+
+Beware, startup commands running on foreground will prevent Caddy from starting if they exit with an error.
+
 ### Caddyfile
 ```
-exec [<matcher>] [<at>] <command> [args...] {
+exec [<matcher>] [<command> [args...]] {
+    command     command
     args        args...
     directory   directory
     timeout     timeout
     foreground
+    startup
+    shutdown
 }
 ```
 * **matcher** - [caddyfile matcher](https://caddyserver.com/docs/caddyfile/matchers). When set, this command runs when there is an http request at the current route or the specified matcher. You may leverage [request matchers](https://caddyserver.com/docs/caddyfile/matchers) to protect the endpoint.
-* **at** - when to run the command. Must be one of `startup` or `shutdown`. This disables http endpoint and only run the command at `at`. Only one of `at` or `matcher` may be used.
-* **command** - the command to run
-* **args...** - the command arguments
-* **directory** - the directory to run the command from
-* **timeout** - the timeout to terminate the command process. Default is 10s.
-* **foreground** - if present, runs the command in the foreground. Beware, the failure of startup command running in the foreground can prevent Caddy from starting. For commands at http endpoints, the command will exit before the http request is responded to.
+* **command** - command to run
+* **args...** - command arguments
+* **directory** - directory to run the command from
+* **timeout** - timeout to terminate the command's process. Default is 10s.
+* **foreground** - if present, runs the command in the foreground. For commands at http endpoints, the command will exit before the http request is responded to.
+* **startup** - if present, run the command at startup. Disables http endpoint.
+* **shutdown** - if present, run the command at shutdown. Disables http endpoint.
 
 #### Example
 
@@ -44,9 +52,9 @@ route /generate {
 Note that Caddy prevents non-standard directives from being used globally in the Caddyfile except when defined with [order](https://caddyserver.com/docs/caddyfile/options) or scoped to a [route](https://caddyserver.com/docs/caddyfile/directives/route). 
 route is recommended for `exec`.
 
-### API
+### API/JSON
 
-`exec` is somewhat unique in that it can be configured in two ways via the API. The Caddyfile config above abstracts this from the user but the API gives more control.
+`exec` is somewhat unique in that it can be configured in two ways with JSON. Configuring with Caddyfile abstracts this from the user but the API gives more control.
 
 1. As a top level app for `startup` and `shutdown` commands.
 
@@ -54,15 +62,28 @@ route is recommended for `exec`.
 {
   "apps": {
     "http": { ... },
+    // app configuration
     "exec": {
+      // list of commands
       "commands": [
+        // command configuration
         {
+          // command to execute
           "command": "hugo",
+          // [optional] command arguments
           "args": [
             "generate",
             "--destination=/home/user/site/public"
           ],
-          "at": "startup"
+          // when to run the command, one of 'startup' or 'shutdown'
+          "at": "startup",
+
+          // [optional] directory to run the command from. Default is the current directory.
+          "directory": "",
+          // [optional] if the command should run on the foreground. Default is false.
+          "foreground": false,
+          // [optional] timeout to terminate the command's process. Default is 10s.
+          "timeout": "10s",
         }
       ]
     }
@@ -76,16 +97,24 @@ route is recommended for `exec`.
 ```json
 
 {
-...
+  ...
   "routes": [
     {
       "handle": [
+        // exec configuration for an endpoint route
         {
+          // required to inform caddy the handler is `exec`
           "handler": "exec",
+          // command to execute
           "command": "git",
+          // command arguments
           "args": ["pull", "origin", "master"],
+
+          // [optional] directory to run the command from. Default is the current directory.
           "directory": "/home/user/site/public",
+          // [optional] if the command should run on the foreground. Default is false.
           "foreground": true,
+          // [optional] timeout to terminate the command's process. Default is 10s.
           "timeout": "5s"
         }
       ],
@@ -98,4 +127,14 @@ route is recommended for `exec`.
   ]
 }
 ```
+## Dyanmic Configuration
 
+Caddy supports dynamic zero-downtime configuration reloads and it is possible to modify `exec`'s configurations at runtime.
+
+`exec` intelligently determines when Caddy is starting and shutting down. i.e. startup and shutdown commands do not get triggered during configuration reload, only during Caddy's startup and shutdown.
+
+Therefore, you are recommended to dynamically configure only commands triggered by http endpoints for more predictable behaviour.
+
+### License
+
+Apache 2

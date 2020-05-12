@@ -1,8 +1,6 @@
 package command
 
 import (
-	"log"
-
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -14,7 +12,8 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 	if !h.Next() {
 		return nil, h.ArgErr()
 	}
-	var c moduleConfig
+	var c Cmd
+	handler := false
 
 	// logic copied from RegisterHandlerDirective to customize.
 	matcherSet, ok, err := h.MatcherToken()
@@ -23,85 +22,63 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 	}
 	if ok {
 		h.Dispenser.Delete()
-		c.handler = true
+		handler = true
 	}
 	h.Dispenser.Reset()
 
 	// parse Caddyfile
-	err = c.UnmarshalCaddyfile(h.Dispenser)
+	err = c.UnmarshalCaddyfile(h.Dispenser, handler)
 	if err != nil {
 		return nil, err
 	}
 
 	// if there's a matcher, return as http handler
 	if ok && matcherSet != nil {
-		m := Middleware{moduleConfig: c}
-		// matcherSet = caddy.ModuleMap{"path": json.RawMessage{}}
+		m := Middleware{Cmd: c}
 		return h.NewRoute(matcherSet, m), nil
 	}
 
 	// otherwise, non-http handler
-	// let's handle this ourselves. We're trying to startup an App
-	m := Middleware{moduleConfig: c}
-	log.Printf("it is parsing... %+v\n", m)
+	// wrap with a nopmatcher to prevent http requests.
+	m := Middleware{Cmd: c}
 
-	rawMsg := caddyconfig.JSON(Matcher{}, nil)
-	matcherSet = caddy.ModuleMap{"execnomatch": rawMsg}
+	rawMsg := caddyconfig.JSON(NopMatcher{}, nil)
+	matcherSet = caddy.ModuleMap{
+		NopMatcher{}.CaddyModule().ID.Name(): rawMsg,
+	}
+
 	return h.NewRoute(matcherSet, m), nil
-	// configs = append(configs, c)
-	// return nil, nil
+
 }
 
 // UnmarshalCaddyfile configures the global directive from Caddyfile.
 // Syntax:
 //
-//   exec <matcher>|startup|shutdown [<command>] [args...] {
+//   exec [<matcher>] [<command>] [args...] {
 //       command     <text>
 //       args        <text>...
 //       directory   <text>
 //       timeout     <duration>
 //       foreground
+//       startup
+//       shutdown
 //   }
 //
-func (m *moduleConfig) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	if m.handler {
-		// command, if present.
-		if d.Next() {
-			if !d.Args(&m.Command) {
-				return d.ArgErr()
-			}
+func (m *Cmd) UnmarshalCaddyfile(d *caddyfile.Dispenser, handler bool) error {
+	// command, if present.
+	if d.Next() {
+		if !d.Args(&m.Command) {
+			return d.ArgErr()
 		}
-		// everything else are args, if present.
-		m.Args = d.RemainingArgs()
-		return m.unmarshalBlock(d)
 	}
+	// everything else are args, if present.
+	m.Args = d.RemainingArgs()
 
-	d.Next() // discard the directive
-
-	// not an handler, matcher token missing
-	// expect startup|shutdown
-
-	if !d.Next() {
-		return d.Err("one of startup|shutdown expected")
-	}
-
-	// the first argument must be startup|shutdown
-	switch d.Val() {
-	case "startup":
-		m.Startup = true
-	case "shutdown":
-		m.Shutdown = true
-	default:
-		return d.Err("the first argument must be one of <matcher>|startup|shutdown")
-	}
-	if d.Args(&m.Command) {
-		m.Args = d.RemainingArgs()
-	}
-
+	// parse the next block
 	return m.unmarshalBlock(d)
 }
 
-func (m *moduleConfig) unmarshalBlock(d *caddyfile.Dispenser) error {
+func (m *Cmd) unmarshalBlock(d *caddyfile.Dispenser) error {
 	for d.NextBlock(0) {
 		switch d.Val() {
 		case "command":
@@ -122,6 +99,10 @@ func (m *moduleConfig) unmarshalBlock(d *caddyfile.Dispenser) error {
 			}
 		case "foreground":
 			m.Foreground = true
+		case "startup":
+			m.At = append(m.At, "startup")
+		case "shutdown":
+			m.At = append(m.At, "shutdown")
 		case "timeout":
 			if !d.Args(&m.Timeout) {
 				return d.ArgErr()

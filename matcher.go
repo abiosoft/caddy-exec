@@ -4,53 +4,39 @@ import (
 	"net/http"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"go.uber.org/zap"
 )
 
 var (
-	_ caddy.App                = (*Matcher)(nil)
-	_ caddy.Module             = (*Matcher)(nil)
-	_ caddy.Provisioner        = (*Matcher)(nil)
-	_ caddyfile.Unmarshaler    = (*Matcher)(nil)
-	_ caddyhttp.RequestMatcher = (*Matcher)(nil)
+	_ caddy.Module             = (*NopMatcher)(nil)
+	_ caddy.Provisioner        = (*NopMatcher)(nil)
+	_ caddyhttp.RequestMatcher = (*NopMatcher)(nil)
 )
 
 func init() {
-	caddy.RegisterModule(Matcher{})
+	caddy.RegisterModule(NopMatcher{})
 }
 
-// Matcher is a matcher that blocks all request.
+// NopMatcher is a matcher that blocks all request.
 // It's primary purpose is to ensure the command is not
 // executed when no route/matcher is specified.
-type Matcher struct {
+// Limitation of Caddyfile config. JSON/API config do not need this.
+type NopMatcher struct {
 	Label string `json:"label,omitempty"`
 	log   *zap.Logger
 }
 
 // CaddyModule implements caddy.Module
-func (Matcher) CaddyModule() caddy.ModuleInfo {
+func (NopMatcher) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "http.matchers.execnomatch",
-		New: func() caddy.Module { return new(Matcher) },
+		ID:  "http.matchers.execnopmatch",
+		New: func() caddy.Module { return new(NopMatcher) },
 	}
 }
 
-// Start ...
-func (m Matcher) Start() error {
-	m.log.Named(m.Label).Info("starting up...")
-	return nil
-}
-
-// Stop ...
-func (m Matcher) Stop() error {
-	m.log.Named(m.Label).Info("shutting down...")
-	return nil
-}
-
 // Provision implements caddy.Provisioner
-func (m *Matcher) Provision(ctx caddy.Context) error {
+func (m *NopMatcher) Provision(ctx caddy.Context) error {
 	if m.Label == "" {
 		m.Label = "default"
 	}
@@ -59,21 +45,7 @@ func (m *Matcher) Provision(ctx caddy.Context) error {
 }
 
 // Match implements caddy.Matcher
-func (m Matcher) Match(r *http.Request) bool {
-	m.log.Named(m.Label).Info("blocking request to exec handler")
+func (m NopMatcher) Match(r *http.Request) bool {
+	// block all requests
 	return false
-}
-
-// UnmarshalCaddyfile implements caddyfile.Unmarshaler
-func (m *Matcher) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	if !d.Next() {
-		return d.Err("label required")
-	}
-	if !d.Args(&m.Label) {
-		return d.ArgErr()
-	}
-	if d.NextBlock(0) {
-		return d.Err("no block expected")
-	}
-	return nil
 }

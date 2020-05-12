@@ -1,20 +1,21 @@
 package command
 
 import (
-	"errors"
+	"sync/atomic"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"go.uber.org/zap"
 )
 
 // Interface guards
 var (
-	_ caddy.App             = (*App)(nil)
-	_ caddy.Module          = (*App)(nil)
-	_ caddy.Provisioner     = (*App)(nil)
-	_ caddy.Validator       = (*App)(nil)
-	_ caddyfile.Unmarshaler = (*App)(nil)
+	_ caddy.App         = (*App)(nil)
+	_ caddy.Module      = (*App)(nil)
+	_ caddy.Provisioner = (*App)(nil)
+	_ caddy.Validator   = (*App)(nil)
 )
+
+var lifeCycle int32
 
 func init() {
 	caddy.RegisterModule(App{})
@@ -22,60 +23,77 @@ func init() {
 
 // App is top level module that runs shell commands.
 type App struct {
-	moduleConfig
+	Commands []Cmd `json:"commands,omitempty"`
+
+	commands map[string][]Runner
+	log      *zap.Logger
 }
 
-// Start starts the app.
-func (a *App) Start() error {
-	if !a.Startup {
-		return nil
-	}
-
-	return a.run()
-}
-
-// Stop stops the app.
-func (a *App) Stop() error {
-	if !a.Shutdown {
-		return nil
-	}
-
-	return a.run()
-}
-
-// Provision implements caddy.Provisioner.
+// Provision implements caddy.Provisioner
 func (a *App) Provision(ctx caddy.Context) error {
-	if a.empty() {
-		// special case
-		// provision will be manually called
-		// workaround to take advantage of caddyfile
-		return nil
+	if a.commands == nil {
+		a.commands = map[string][]Runner{}
 	}
 
-	err := a.moduleConfig.provision(ctx, a)
-	if err != nil {
-		return err
+	a.log = ctx.Logger(a)
+	for _, cmd := range a.Commands {
+		if err := cmd.provision(ctx, a); err != nil {
+			return err
+		}
+		a.addCmd(cmd)
 	}
+	return nil
+}
 
-	if !a.Startup && !a.Shutdown {
-		return errors.New("one of startup|shutdown is required")
+func (a *App) addCmd(c Cmd) {
+	runner := runnerFunc(c.run)
+	for at := range c.at {
+		a.commands[at] = append(a.commands[at], runner)
 	}
+}
 
-	if a.Startup && a.Shutdown {
-		return errors.New("only one of startup|shutdown is required")
+// Validate implements caddy.Validator
+func (a App) Validate() error {
+	for _, cmd := range a.Commands {
+		if err := cmd.validate(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// Validate implements caddy.Validator.
-func (a App) Validate() error {
-	if a.moduleConfig.empty() {
-		// special case
+// Start starts the app.
+func (a App) Start() error {
+	count := atomic.AddInt32(&lifeCycle, 1)
+	if count > 1 {
+		// not the first startup, maybe a reload
 		return nil
 	}
 
-	return a.moduleConfig.Validate()
+	for _, runner := range a.commands["startup"] {
+		if err := runner.Run(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Stop stops the app.
+// TODO: maybe leverage caddy.Destructor to track shutdown.
+func (a *App) Stop() error {
+	count := atomic.AddInt32(&lifeCycle, -1)
+	if count > 0 {
+		// not shutdown, maybe a prior config reload.
+		return nil
+	}
+
+	for _, runner := range a.commands["shutdown"] {
+		if err := runner.Run(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CaddyModule implements caddy.ModuleInfo
