@@ -2,7 +2,7 @@ package command
 
 import (
 	"context"
-	"log"
+	"os"
 	"os/exec"
 	"time"
 
@@ -42,7 +42,7 @@ func (m *Cmd) run() error {
 
 	// configure command
 	{
-		writer := newLogWriter(m)
+		writer := os.Stderr
 		cmd.Stderr = writer
 		cmd.Stdout = writer
 		cmd.Dir = m.Directory
@@ -78,22 +78,3 @@ func (m *Cmd) run() error {
 	return err
 }
 
-// zapWriter wraps zaps standard logger.
-// for whatever reason, zap returns n-1 written bytes
-// which is getting interpreted as a broken pipe,
-// this is just an hack to work around it.
-//
-// TODO: maybe simply use stdout/stderr. zap is preferred for
-// context provided and consistency with other caddy logs.
-type logWriter struct {
-	std *log.Logger
-}
-
-func newLogWriter(m *Cmd) *logWriter {
-	return &logWriter{std: zap.NewStdLog(m.log.Named("cmd").Named(m.Command))}
-}
-
-func (z *logWriter) Write(b []byte) (int, error) {
-	n, err := z.std.Writer().Write(b)
-	return n + 1, err
-}
