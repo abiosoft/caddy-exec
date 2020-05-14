@@ -29,7 +29,7 @@ exec [<matcher>] [<command> [args...]] {
     shutdown
 }
 ```
-* **matcher** - [caddyfile matcher](https://caddyserver.com/docs/caddyfile/matchers). When set, this command runs when there is an http request at the current route or the specified matcher. You may leverage [request matchers](https://caddyserver.com/docs/caddyfile/matchers) to protect the endpoint.
+* **matcher** - [caddyfile matcher](https://caddyserver.com/docs/caddyfile/matchers). When set, this command runs when there is an http request at the current route or the specified matcher. You may leverage other matchers to protect the endpoint.
 * **command** - command to run
 * **args...** - command arguments
 * **directory** - directory to run the command from
