@@ -13,7 +13,6 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 		return nil, h.ArgErr()
 	}
 	var c Cmd
-	handler := false
 
 	// logic copied from RegisterHandlerDirective to customize.
 	matcherSet, ok, err := h.MatcherToken()
@@ -22,18 +21,17 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 	}
 	if ok {
 		h.Dispenser.Delete()
-		handler = true
 	}
 	h.Dispenser.Reset()
 
 	// parse Caddyfile
-	err = c.UnmarshalCaddyfile(h.Dispenser, handler)
+	err = c.UnmarshalCaddyfile(h.Dispenser)
 	if err != nil {
 		return nil, err
 	}
 
 	// if there's a matcher, return as http handler
-	if ok && matcherSet != nil {
+	if c.isRoute() {
 		m := Middleware{Cmd: c}
 		return h.NewRoute(matcherSet, m), nil
 	}
@@ -64,7 +62,7 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 //       shutdown
 //   }
 //
-func (m *Cmd) UnmarshalCaddyfile(d *caddyfile.Dispenser, handler bool) error {
+func (m *Cmd) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	// command, if present.
 	if d.Next() {
 		if !d.Args(&m.Command) {
