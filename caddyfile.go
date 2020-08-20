@@ -37,12 +37,12 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 	}
 
 	// otherwise, non-http handler
-	// wrap with a nopmatcher to prevent http requests.
+	// wrap with a NoOpMatcher to prevent http requests.
 	m := Middleware{Cmd: c}
 
-	rawMsg := caddyconfig.JSON(NopMatcher{}, nil)
+	rawMsg := caddyconfig.JSON(NoOpMatcher{}, nil)
 	matcherSet = caddy.ModuleMap{
-		NopMatcher{}.CaddyModule().ID.Name(): rawMsg,
+		NoOpMatcher{}.CaddyModule().ID.Name(): rawMsg,
 	}
 
 	return h.NewRoute(matcherSet, m), nil

@@ -9,34 +9,34 @@ import (
 )
 
 var (
-	_ caddy.Module             = (*NopMatcher)(nil)
-	_ caddy.Provisioner        = (*NopMatcher)(nil)
-	_ caddyhttp.RequestMatcher = (*NopMatcher)(nil)
+	_ caddy.Module             = (*NoOpMatcher)(nil)
+	_ caddy.Provisioner        = (*NoOpMatcher)(nil)
+	_ caddyhttp.RequestMatcher = (*NoOpMatcher)(nil)
 )
 
 func init() {
-	caddy.RegisterModule(NopMatcher{})
+	caddy.RegisterModule(NoOpMatcher{})
 }
 
-// NopMatcher is a matcher that blocks all request.
+// NoOpMatcher is a matcher that blocks all requests.
 // It's primary purpose is to ensure the command is not
 // executed when no route/matcher is specified.
 // Limitation of Caddyfile config. JSON/API config do not need this.
-type NopMatcher struct {
+type NoOpMatcher struct {
 	Label string `json:"label,omitempty"`
 	log   *zap.Logger
 }
 
 // CaddyModule implements caddy.Module
-func (NopMatcher) CaddyModule() caddy.ModuleInfo {
+func (NoOpMatcher) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "http.matchers.execnopmatch",
-		New: func() caddy.Module { return new(NopMatcher) },
+		ID:  "http.matchers.exec_noop",
+		New: func() caddy.Module { return new(NoOpMatcher) },
 	}
 }
 
 // Provision implements caddy.Provisioner
-func (m *NopMatcher) Provision(ctx caddy.Context) error {
+func (m *NoOpMatcher) Provision(ctx caddy.Context) error {
 	if m.Label == "" {
 		m.Label = "default"
 	}
@@ -45,7 +45,7 @@ func (m *NopMatcher) Provision(ctx caddy.Context) error {
 }
 
 // Match implements caddy.Matcher
-func (m NopMatcher) Match(r *http.Request) bool {
+func (m NoOpMatcher) Match(r *http.Request) bool {
 	// block all requests
 	return false
 }
