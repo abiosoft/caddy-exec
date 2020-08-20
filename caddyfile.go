@@ -63,12 +63,11 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 //   }
 //
 func (m *Cmd) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	// command, if present.
-	if d.Next() {
-		if !d.Args(&m.Command) {
-			return d.ArgErr()
-		}
+	// consume "exec", then grab the command, if present.
+	if d.NextArg() && d.NextArg() {
+		m.Command = d.Val()
 	}
+
 	// everything else are args, if present.
 	m.Args = d.RemainingArgs()
 
