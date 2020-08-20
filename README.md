@@ -5,7 +5,7 @@ Caddy v2 module for running one-off commands.
 ## Installation
 
 ```
-xcaddy build v2.0.0 \
+xcaddy build \
     --with github.com/abiosoft/caddy-exec
 ```
 
@@ -19,21 +19,21 @@ Beware, startup commands running on foreground will prevent Caddy from starting 
 
 ### Caddyfile
 ```
-exec [<matcher>] [<command> [args...]] {
-    command     command
-    args        args...
-    directory   directory
-    timeout     timeout
+exec [<matcher>] [<command> [<args...>]] {
+    command     <command>
+    args        <args...>
+    directory   <directory>
+    timeout     <timeout>
     foreground
     startup
     shutdown
 }
 ```
-* **matcher** - [caddyfile matcher](https://caddyserver.com/docs/caddyfile/matchers). When set, this command runs when there is an http request at the current route or the specified matcher. You may leverage other matchers to protect the endpoint.
+* **matcher** - [Caddyfile matcher](https://caddyserver.com/docs/caddyfile/matchers). When set, this command runs when there is an http request at the current route or the specified matcher. You may leverage other matchers to protect the endpoint.
 * **command** - command to run
 * **args...** - command arguments
 * **directory** - directory to run the command from
-* **timeout** - timeout to terminate the command's process. Default is 10s.
+* **timeout** - timeout to terminate the command's process. Default is `10s`.
 * **foreground** - if present, runs the command in the foreground. For commands at http endpoints, the command will exit before the http request is responded to.
 * **startup** - if present, run the command at startup. Disables http endpoint.
 * **shutdown** - if present, run the command at shutdown. Disables http endpoint.
@@ -49,8 +49,9 @@ route /generate {
 }
 ```
 
-Note that Caddy prevents non-standard directives from being used globally in the Caddyfile except when defined with [order](https://caddyserver.com/docs/caddyfile/options) or scoped to a [route](https://caddyserver.com/docs/caddyfile/directives/route). 
-route is recommended for `exec`.
+Note that Caddy prevents non-standard directives from being used globally in the Caddyfile except when defined with [order](https://caddyserver.com/docs/caddyfile/options) or scoped to a [route](https://caddyserver.com/docs/caddyfile/directives/route).
+
+Using `route` is recommended for `exec`.
 
 ### API/JSON
 
