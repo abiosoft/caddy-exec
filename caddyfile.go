@@ -52,7 +52,7 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 // UnmarshalCaddyfile configures the global directive from Caddyfile.
 // Syntax:
 //
-//   exec [<matcher>] [<command>] [args...] {
+//   exec [<matcher>] [<command> [<args...>]] {
 //       command     <text>
 //       args        <text>...
 //       directory   <text>
