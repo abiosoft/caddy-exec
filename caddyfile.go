@@ -7,6 +7,10 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 )
 
+func init() {
+	httpcaddyfile.RegisterGlobalOption("exec", parseExec)
+}
+
 // parseHandlerCaddyfile unmarshals tokens from h into a new Middleware.
 func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
 	if !h.Next() {
@@ -49,7 +53,7 @@ func parseHandlerCaddyfile(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue,
 
 }
 
-// UnmarshalCaddyfile configures the global directive from Caddyfile.
+// UnmarshalCaddyfile configures the handler directive from Caddyfile.
 // Syntax:
 //
 //   exec [<matcher>] [<command>] [args...] {
@@ -109,4 +113,78 @@ func (m *Cmd) unmarshalBlock(d *caddyfile.Dispenser) error {
 	}
 
 	return nil
+}
+
+// parseExec configures the "exec" global option from Caddyfile.
+// Syntax:
+//
+//   exec {
+//       command [<command>] [args...] {
+//           args        <text>...
+//           directory   <text>
+//           timeout     <duration>
+//           foreground
+//           startup
+//           shutdown
+//       }
+//   }
+//
+func parseExec(d *caddyfile.Dispenser, _ interface{}) (interface{}, error) {
+	app := new(App)
+
+	// consume the option name
+	if !d.Next() {
+		return nil, d.ArgErr()
+	}
+
+	// handle the block, can have more than one command defined
+	for d.NextBlock(0) {
+		switch d.Val() {
+		case "command":
+			// make a new command, read in the command name
+			cmd := Cmd{}
+			if !d.Args(&cmd.Command) {
+				return nil, d.ArgErr()
+			}
+
+			// if there's any args, read from the same line
+			cmd.Args = d.RemainingArgs()
+
+			// handle any options
+			for d.NextBlock(1) {
+				switch d.Val() {
+				case "args":
+					if len(cmd.Args) > 0 {
+						return nil, d.Err("args specified twice")
+					}
+					cmd.Args = d.RemainingArgs()
+				case "directory":
+					if !d.Args(&cmd.Directory) {
+						return nil, d.ArgErr()
+					}
+				case "foreground":
+					cmd.Foreground = true
+				case "startup":
+					cmd.At = append(cmd.At, "startup")
+				case "shutdown":
+					cmd.At = append(cmd.At, "shutdown")
+				case "timeout":
+					if !d.Args(&cmd.Timeout) {
+						return nil, d.ArgErr()
+					}
+				}
+			}
+
+			// add the command to the app
+			app.Commands = append(app.Commands, cmd)
+		default:
+			return nil, d.ArgErr()
+		}
+	}
+
+	// tell Caddyfile adapter that this is the JSON for an app
+	return httpcaddyfile.App{
+		Name:  "exec",
+		Value: caddyconfig.JSON(app, nil),
+	}, nil
 }
