@@ -76,6 +76,7 @@ func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddy
 		resp.Error = err.Error()
 	}
 
+	w.Header().Add("content-type", "application/json")
 	return json.NewEncoder(w).Encode(resp)
 }
 
