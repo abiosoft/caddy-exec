@@ -28,6 +28,8 @@ func newCommandFromDispenser(d *caddyfile.Dispenser) (cmd Cmd, err error) {
 //       args        <text>...
 //       directory   <text>
 //       timeout     <duration>
+//       log         <log output module>
+//       err_log     <log output module>
 //       foreground
 //       startup
 //       shutdown
@@ -46,6 +48,8 @@ func parseHandlerCaddyfileBlock(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHan
 //       args        <text>...
 //       directory   <text>
 //       timeout     <duration>
+//       log         <log output module>
+//       err_log     <log output module>
 //       foreground
 //       startup
 //       shutdown
@@ -92,6 +96,8 @@ func parseGlobalCaddyfileBlock(d *caddyfile.Dispenser, prev interface{}) (interf
 //       args        <text>...
 //       directory   <text>
 //       timeout     <duration>
+//       log         <log output module>
+//       err_log     <log output module>
 //       foreground
 //       startup
 //       shutdown
@@ -141,38 +147,52 @@ func (c *Cmd) unmarshalBlock(d *caddyfile.Dispenser) error {
 				return d.ArgErr()
 			}
 		case "log":
-			if !d.NextArg() {
-				return d.ArgErr()
+			rawMessage, err := c.unmarshalLog(d)
+			if err != nil {
+				return err
 			}
-			moduleName := d.Val()
-
-			// copied from caddy's source
-			// TODO: raise the topic of log re-use by non-standard modules.
-			var wo caddy.WriterOpener
-			switch moduleName {
-			case "stdout":
-				wo = caddy.StdoutWriter{}
-			case "stderr":
-				wo = caddy.StderrWriter{}
-			case "discard":
-				wo = caddy.DiscardWriter{}
-			default:
-				modID := "caddy.logging.writers." + moduleName
-				unm, err := caddyfile.UnmarshalModule(d, modID)
-				if err != nil {
-					return err
-				}
-				var ok bool
-				wo, ok = unm.(caddy.WriterOpener)
-				if !ok {
-					return d.Errf("module %s (%T) is not a WriterOpener", modID, unm)
-				}
+			c.StdWriterRaw = rawMessage
+		case "err_log":
+			rawMessage, err := c.unmarshalLog(d)
+			if err != nil {
+				return err
 			}
-			c.WriterRaw = caddyconfig.JSONModuleObject(wo, "output", moduleName, nil)
+			c.ErrWriterRaw = rawMessage
 		default:
 			return d.Errf("'%s' not expected", d.Val())
 		}
 	}
 
 	return nil
+}
+
+func (c *Cmd) unmarshalLog(d *caddyfile.Dispenser) (json.RawMessage, error) {
+	if !d.NextArg() {
+		return nil, d.ArgErr()
+	}
+	moduleName := d.Val()
+
+	// copied from caddy's source
+	// TODO: raise the topic of log re-use by non-standard modules.
+	var wo caddy.WriterOpener
+	switch moduleName {
+	case "stdout":
+		wo = caddy.StdoutWriter{}
+	case "stderr":
+		wo = caddy.StderrWriter{}
+	case "discard":
+		wo = caddy.DiscardWriter{}
+	default:
+		modID := "caddy.logging.writers." + moduleName
+		unm, err := caddyfile.UnmarshalModule(d, modID)
+		if err != nil {
+			return nil, err
+		}
+		var ok bool
+		wo, ok = unm.(caddy.WriterOpener)
+		if !ok {
+			return nil, d.Errf("module %s (%T) is not a WriterOpener", modID, unm)
+		}
+	}
+	return caddyconfig.JSONModuleObject(wo, "output", moduleName, nil), nil
 }

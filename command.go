@@ -40,16 +40,19 @@ type Cmd struct {
 	// "startup" or "shutdown".
 	At []string `json:"at,omitempty"`
 
-	// Where the output should be logged.
-	WriterRaw json.RawMessage `json:"log,omitempty" caddy:"namespace=caddy.logging.writers inline_key=output"`
+	// Standard output log.
+	StdWriterRaw json.RawMessage `json:"log,omitempty" caddy:"namespace=caddy.logging.writers inline_key=output"`
+
+	// Standard error log.
+	ErrWriterRaw json.RawMessage `json:"err_log,omitempty" caddy:"namespace=caddy.logging.writers inline_key=output"`
 
 	timeout time.Duration       // ease of use after parsing timeout string
 	at      map[string]struct{} // for quicker access and uniqueness.
 	log     *zap.Logger
 
 	// logging
-	writerOpener caddy.WriterOpener
-	writer       io.WriteCloser
+	stdWriter io.WriteCloser
+	errWriter io.WriteCloser
 }
 
 // Provision implements caddy.Provisioner.
@@ -74,27 +77,47 @@ func (c *Cmd) provision(ctx caddy.Context, cm caddy.Module) error {
 		c.at[at] = struct{}{}
 	}
 
-	if c.WriterRaw != nil {
-		mod, err := ctx.LoadModule(c, "WriterRaw")
-		if err != nil {
-			return fmt.Errorf("loading log writer module: %v", err)
-		}
-		c.writerOpener = mod.(caddy.WriterOpener)
+	// std logger
+	c.stdWriter, err = writerFromRaw(ctx, c, "StdWriterRaw", c.StdWriterRaw)
+	if err != nil {
+		return err
 	}
-	if c.writerOpener == nil {
-		c.writerOpener = caddy.StderrWriter{}
-	}
-
-	if writer, ok := loggers[c.writerOpener.WriterKey()]; ok {
-		c.writer = writer
-	} else {
-		c.writer, err = c.writerOpener.OpenWriter()
+	// err logger is optional
+	if c.ErrWriterRaw != nil {
+		c.errWriter, err = writerFromRaw(ctx, c, "ErrWriterRaw", c.ErrWriterRaw)
 		if err != nil {
-			return fmt.Errorf("opening log writer using %#v: %v", c.writerOpener, err)
+			return err
 		}
 	}
 
 	return nil
+}
+
+func writerFromRaw(ctx caddy.Context, c *Cmd, field string, w json.RawMessage) (io.WriteCloser, error) {
+	var err error
+	var writerOpener caddy.WriterOpener
+	var writer io.WriteCloser
+	if w != nil {
+		mod, err := ctx.LoadModule(c, field) //"WriterRaw"
+		if err != nil {
+			return nil, fmt.Errorf("loading log writer module: %v", err)
+		}
+		writerOpener = mod.(caddy.WriterOpener)
+	}
+	if writerOpener == nil {
+		writerOpener = caddy.StderrWriter{}
+	}
+
+	if w, ok := loggers[writerOpener.WriterKey()]; ok {
+		writer = w
+	} else {
+		writer, err = writerOpener.OpenWriter()
+		if err != nil {
+			return nil, fmt.Errorf("opening log writer using %#v: %v", writerOpener, err)
+		}
+	}
+
+	return writer, err
 }
 
 // Validate implements caddy.Validator.

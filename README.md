@@ -26,6 +26,7 @@ exec [<matcher>] [<command> [<args...>]] {
     directory   <directory>
     timeout     <timeout>
     log         <log output module>
+    err_log     <log output module>
     foreground
     startup
     shutdown
@@ -37,7 +38,8 @@ exec [<matcher>] [<command> [<args...>]] {
 - **args...** - command arguments
 - **directory** - directory to run the command from
 - **timeout** - timeout to terminate the command's process. Default is `10s`. A timeout of `0` runs indefinitely.
-- **log** - [Caddy log output module](https://caddyserver.com/docs/caddyfile/directives/log#output-modules). Defaults to `stderr`.
+- **log** - [Caddy log output module](https://caddyserver.com/docs/caddyfile/directives/log#output-modules) for standard output log. Defaults to `stderr`.
+- **err_log** - [Caddy log output module](https://caddyserver.com/docs/caddyfile/directives/log#output-modules) for standard error log. Defaults to the value of `log` (standard output log).
 - **foreground** - if present, runs the command in the foreground. For commands at http endpoints, the command will exit before the http request is responded to.
 - **startup** - if present, run the command at startup. Disables http endpoint.
 - **shutdown** - if present, run the command at shutdown. Disables http endpoint.
@@ -48,9 +50,9 @@ exec [<matcher>] [<command> [<args...>]] {
 
 ```
 {
-  exec php-fpm7 {
+  exec hugo generate --destination=/home/user/site/public {
     timeout 0 # run indefinitely
-    log file /var/log/access.log
+    log file /var/logs/hugo.log
   }
 }
 ```

@@ -41,8 +41,11 @@ func (c *Cmd) run() error {
 
 	// configure command
 	{
-		cmd.Stderr = c.writer
-		cmd.Stdout = c.writer
+		cmd.Stdout = c.stdWriter
+		cmd.Stderr = c.stdWriter
+		if c.errWriter != nil {
+			cmd.Stderr = c.errWriter
+		}
 		cmd.Dir = c.Directory
 	}
 
