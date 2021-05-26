@@ -1,7 +1,9 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -38,9 +40,16 @@ type Cmd struct {
 	// "startup" or "shutdown".
 	At []string `json:"at,omitempty"`
 
+	// Where the output should be logged.
+	WriterRaw json.RawMessage `json:"log,omitempty" caddy:"namespace=caddy.logging.writers inline_key=output"`
+
 	timeout time.Duration       // ease of use after parsing timeout string
 	at      map[string]struct{} // for quicker access and uniqueness.
 	log     *zap.Logger
+
+	// logging
+	writerOpener caddy.WriterOpener
+	writer       io.WriteCloser
 }
 
 // Provision implements caddy.Provisioner.
@@ -63,6 +72,26 @@ func (c *Cmd) provision(ctx caddy.Context, cm caddy.Module) error {
 	}
 	for _, at := range c.At {
 		c.at[at] = struct{}{}
+	}
+
+	if c.WriterRaw != nil {
+		mod, err := ctx.LoadModule(c, "WriterRaw")
+		if err != nil {
+			return fmt.Errorf("loading log writer module: %v", err)
+		}
+		c.writerOpener = mod.(caddy.WriterOpener)
+	}
+	if c.writerOpener == nil {
+		c.writerOpener = caddy.StderrWriter{}
+	}
+
+	if writer, ok := loggers[c.writerOpener.WriterKey()]; ok {
+		c.writer = writer
+	} else {
+		c.writer, err = c.writerOpener.OpenWriter()
+		if err != nil {
+			return fmt.Errorf("opening log writer using %#v: %v", c.writerOpener, err)
+		}
 	}
 
 	return nil

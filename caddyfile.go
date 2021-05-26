@@ -3,6 +3,7 @@ package command
 import (
 	"encoding/json"
 
+	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
@@ -139,6 +140,35 @@ func (c *Cmd) unmarshalBlock(d *caddyfile.Dispenser) error {
 			if !d.Args(&c.Timeout) {
 				return d.ArgErr()
 			}
+		case "log":
+			if !d.NextArg() {
+				return d.ArgErr()
+			}
+			moduleName := d.Val()
+
+			// copied from caddy's source
+			// TODO: raise the topic of log re-use by non-standard modules.
+			var wo caddy.WriterOpener
+			switch moduleName {
+			case "stdout":
+				wo = caddy.StdoutWriter{}
+			case "stderr":
+				wo = caddy.StderrWriter{}
+			case "discard":
+				wo = caddy.DiscardWriter{}
+			default:
+				modID := "caddy.logging.writers." + moduleName
+				unm, err := caddyfile.UnmarshalModule(d, modID)
+				if err != nil {
+					return err
+				}
+				var ok bool
+				wo, ok = unm.(caddy.WriterOpener)
+				if !ok {
+					return d.Errf("module %s (%T) is not a WriterOpener", modID, unm)
+				}
+			}
+			c.WriterRaw = caddyconfig.JSONModuleObject(wo, "output", moduleName, nil)
 		default:
 			return d.Errf("'%s' not expected", d.Val())
 		}

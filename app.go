@@ -1,6 +1,7 @@
 package command
 
 import (
+	"io"
 	"sync/atomic"
 
 	"github.com/caddyserver/caddy/v2"
@@ -15,7 +16,11 @@ var (
 	_ caddy.Validator   = (*App)(nil)
 )
 
+// lifeCycle is used to keep track of startup/shutdown
 var lifeCycle int32
+
+// loggers keeps track of loggers to prevent recreation.
+var loggers = map[string]io.WriteCloser{}
 
 func init() {
 	caddy.RegisterModule(App{})

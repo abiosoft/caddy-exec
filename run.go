@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"time"
 
@@ -18,18 +17,18 @@ type runnerFunc func() error
 
 func (r runnerFunc) Run() error { return r() }
 
-func (m *Cmd) run() error {
-	cmdInfo := zap.Any("command", append([]string{m.Command}, m.Args...))
-	log := m.log.With(cmdInfo)
+func (c *Cmd) run() error {
+	cmdInfo := zap.Any("command", append([]string{c.Command}, c.Args...))
+	log := c.log.With(cmdInfo)
 	startTime := time.Now()
 
-	cmd := exec.Command(m.Command, m.Args...)
+	cmd := exec.Command(c.Command, c.Args...)
 
 	done := make(chan struct{}, 1)
 
 	// timeout
-	if m.timeout > 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	if c.timeout > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 
 		// the context must not be cancelled before the command is done
 		go func() {
@@ -37,15 +36,14 @@ func (m *Cmd) run() error {
 			cancel()
 		}()
 
-		cmd = exec.CommandContext(ctx, m.Command, m.Args...)
+		cmd = exec.CommandContext(ctx, c.Command, c.Args...)
 	}
 
 	// configure command
 	{
-		writer := os.Stderr
-		cmd.Stderr = writer
-		cmd.Stdout = writer
-		cmd.Dir = m.Directory
+		cmd.Stderr = c.writer
+		cmd.Stdout = c.writer
+		cmd.Dir = c.Directory
 	}
 
 	wait := func(err error) error {
@@ -70,7 +68,7 @@ func (m *Cmd) run() error {
 	// start command
 	err := cmd.Start()
 
-	if m.Foreground {
+	if c.Foreground {
 		return wait(err)
 	}
 
