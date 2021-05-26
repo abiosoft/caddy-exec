@@ -41,18 +41,17 @@ exec [<matcher>] [<command> [<args...>]] {
 - **log** - [Caddy log output module](https://caddyserver.com/docs/caddyfile/directives/log#output-modules) for standard output log. Defaults to `stderr`.
 - **err_log** - [Caddy log output module](https://caddyserver.com/docs/caddyfile/directives/log#output-modules) for standard error log. Defaults to the value of `log` (standard output log).
 - **foreground** - if present, runs the command in the foreground. For commands at http endpoints, the command will exit before the http request is responded to.
-- **startup** - if present, run the command at startup. Disables http endpoint.
-- **shutdown** - if present, run the command at shutdown. Disables http endpoint.
+- **startup** - if present, run the command at startup. Ignored in routes.
+- **shutdown** - if present, run the command at shutdown. Ignored in routes.
 
 #### Example
 
-`exec` can start php-fpm via the [global](https://caddyserver.com/docs/caddyfile/options) directive.
+`exec` can run at start via the [global](https://caddyserver.com/docs/caddyfile/options) directive.
 
 ```
 {
   exec hugo generate --destination=/home/user/site/public {
-    timeout 0 # run indefinitely
-    log file /var/logs/hugo.log
+      timeout 0 # don't timeout
   }
 }
 ```
@@ -60,9 +59,11 @@ exec [<matcher>] [<command> [<args...>]] {
 `exec` can be the last action of a route block.
 
 ```
-route /generate {
+route /update {
     ... # other directives e.g. for authentication
-    exec hugo generate --destination=/home/user/site/public
+    exec git pull origin master {
+        log file /var/logs/hugo.log
+    }
 }
 ```
 
@@ -96,6 +97,15 @@ As a top level app for `startup` and `shutdown` commands.
           "foreground": false,
           // [optional] timeout to terminate the command's process. Default is 10s.
           "timeout": "10s",
+          // [optional] log output module config for standard output. Default is `stderr` module.
+          "log": {
+            "output": "file",
+            "filename": "/var/logs/hugo.log"
+          },
+          // [optional] log output module config for standard error. Default is the value of `log`.
+          "err_log": {
+            "output": "stderr"
+          }
         }
       ]
     }
@@ -127,12 +137,21 @@ As an handler within a route.
           // [optional] if the command should run on the foreground. Default is false.
           "foreground": true,
           // [optional] timeout to terminate the command's process. Default is 10s.
-          "timeout": "5s"
+          "timeout": "5s",
+          // [optional] log output module config for standard output. Default is `stderr` module.
+          "log": {
+            "output": "file",
+            "filename": "/var/logs/hugo.log"
+          },
+          // [optional] log output module config for standard error. Default is the value of `log`.
+          "err_log": {
+            "output": "stderr"
+          }
         }
       ],
       "match": [
         {
-          "path": ["/generate"]
+          "path": ["/update"]
         }
       ]
     }
