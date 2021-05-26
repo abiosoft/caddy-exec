@@ -77,4 +77,3 @@ func (m *Cmd) run() error {
 	go wait(err)
 	return err
 }
-

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
@@ -18,7 +17,6 @@ var (
 
 func init() {
 	caddy.RegisterModule(Middleware{})
-	httpcaddyfile.RegisterDirective("exec", parseHandlerCaddyfile)
 }
 
 // Middleware implements an HTTP handler that runs shell command.
@@ -35,30 +33,10 @@ func (Middleware) CaddyModule() caddy.ModuleInfo {
 }
 
 // Provision implements caddy.Provisioner.
-func (m *Middleware) Provision(ctx caddy.Context) error {
-	if err := m.Cmd.provision(ctx, m); err != nil {
-		return err
-	}
-
-	// only non-routes gets added to the App
-	if m.Cmd.isRoute() {
-		return nil
-	}
-
-	// load or bootstrap App
-	appI, err := ctx.App(App{}.CaddyModule().String())
-	if err != nil {
-		return err
-	}
-	app := appI.(*App)
-	app.addCmd(m.Cmd)
-	return nil
-}
+func (m *Middleware) Provision(ctx caddy.Context) error { return m.Cmd.provision(ctx, m) }
 
 // Validate implements caddy.Validator
-func (m Middleware) Validate() error {
-	return m.Cmd.validate()
-}
+func (m Middleware) Validate() error { return m.Cmd.validate() }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {

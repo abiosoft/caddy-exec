@@ -44,41 +44,41 @@ type Cmd struct {
 }
 
 // Provision implements caddy.Provisioner.
-func (m *Cmd) provision(ctx caddy.Context, cm caddy.Module) error {
-	m.log = ctx.Logger(cm)
+func (c *Cmd) provision(ctx caddy.Context, cm caddy.Module) error {
+	c.log = ctx.Logger(cm)
 
 	// timeout
-	if m.Timeout == "" {
-		m.Timeout = "10s"
+	if c.Timeout == "" {
+		c.Timeout = "10s"
 	}
-	dur, err := time.ParseDuration(m.Timeout)
+	dur, err := time.ParseDuration(c.Timeout)
 	if err != nil {
 		return err
 	}
-	m.timeout = dur
+	c.timeout = dur
 
 	// at
-	if m.at == nil {
-		m.at = map[string]struct{}{}
+	if c.at == nil {
+		c.at = map[string]struct{}{}
 	}
-	for _, at := range m.At {
-		m.at[at] = struct{}{}
+	for _, at := range c.At {
+		c.at[at] = struct{}{}
 	}
 
 	return nil
 }
 
 // Validate implements caddy.Validator.
-func (m Cmd) validate() error {
-	if m.Command == "" {
+func (c Cmd) validate() error {
+	if c.Command == "" {
 		return fmt.Errorf("command is required")
 	}
 
-	if err := isValidDir(m.Directory); err != nil {
+	if err := isValidDir(c.Directory); err != nil {
 		return err
 	}
 
-	for _, at := range m.At {
+	for _, at := range c.At {
 		switch at {
 		case "startup":
 		case "shutdown":
@@ -88,10 +88,6 @@ func (m Cmd) validate() error {
 	}
 
 	return nil
-}
-
-func (m Cmd) isRoute() bool {
-	return len(m.At) == 0 && len(m.at) == 0
 }
 
 func isValidDir(dir string) error {
