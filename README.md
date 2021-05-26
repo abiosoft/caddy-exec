@@ -61,10 +61,6 @@ route /generate {
 }
 ```
 
-Note that Caddy prevents non-standard directives from being used globally in the Caddyfile except when defined with [order](https://caddyserver.com/docs/caddyfile/options) or scoped to a [route](https://caddyserver.com/docs/caddyfile/directives/route).
-
-Using `route` is recommended for `exec`.
-
 ### API/JSON
 
 As a top level app for `startup` and `shutdown` commands.
@@ -143,7 +139,7 @@ As an handler within a route.
 
 Caddy supports dynamic zero-downtime configuration reloads and it is possible to modify `exec`'s configurations at runtime.
 
-`exec` intelligently determines when Caddy is starting and shutting down. i.e. startup and shutdown commands do not get triggered during configuration reload, only during Caddy's startup and shutdown.
+`exec` intelligently determines when Caddy is starting and shutting down. i.e. startup and shutdown commands do not get triggered during configuration reload, only during Caddy's actual startup and shutdown.
 
 ## License
 
