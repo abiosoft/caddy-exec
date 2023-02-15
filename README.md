@@ -129,8 +129,9 @@ As an handler within a route.
           "handler": "exec",
           // command to execute
           "command": "git",
-          // command arguments
-          "args": ["pull", "origin", "master"],
+          // command arguments it's also possible to use 
+          // caddy variables like {http.request.uuid}
+          "args": ["pull", "origin", "master", "# {http.request.uuid}"],
 
           // [optional] directory to run the command from. Default is the current directory.
           "directory": "/home/user/site/public",

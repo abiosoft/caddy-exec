@@ -1,2 +1,6 @@
 caddy
 buildenv_*
+
+# vscode
+*vscode
+*.code-workspace
