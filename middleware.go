@@ -40,11 +40,6 @@ func (m Middleware) Validate() error { return m.Cmd.validate() }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
 func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	var resp struct {
-		Status string `json:"status,omitempty"`
-		Error  string `json:"error,omitempty"`
-	}
-
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
 
 	for index, argument := range m.Args {
@@ -52,6 +47,19 @@ func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddy
 	}
 
 	err := m.run()
+
+	if m.PassThru {
+		if err != nil {
+			m.log.Error(err.Error())
+		}
+
+		return next.ServeHTTP(w, r)
+	}
+
+	var resp struct {
+		Status string `json:"status,omitempty"`
+		Error  string `json:"error,omitempty"`
+	}
 
 	if err == nil {
 		resp.Status = "success"

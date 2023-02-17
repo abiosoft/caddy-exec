@@ -28,6 +28,7 @@ exec [<matcher>] [<command> [<args...>]] {
     log         <log output module>
     err_log     <log output module>
     foreground
+    pass_thru
     startup
     shutdown
 }
@@ -41,6 +42,7 @@ exec [<matcher>] [<command> [<args...>]] {
 - **log** - [Caddy log output module](https://caddyserver.com/docs/caddyfile/directives/log#output-modules) for standard output log. Defaults to `stderr`.
 - **err_log** - [Caddy log output module](https://caddyserver.com/docs/caddyfile/directives/log#output-modules) for standard error log. Defaults to the value of `log` (standard output log).
 - **foreground** - if present, runs the command in the foreground. For commands at http endpoints, the command will exit before the http request is responded to.
+- **pass_thru** - if present, enables pass-thru mode, which continues to the next HTTP handler in the route instead of responding directly
 - **startup** - if present, run the command at startup. Ignored in routes.
 - **shutdown** - if present, run the command at shutdown. Ignored in routes.
 
@@ -95,6 +97,8 @@ As a top level app for `startup` and `shutdown` commands.
           "directory": "",
           // [optional] if the command should run on the foreground. Default is false.
           "foreground": false,
+          // [optional] if the middleware should respond directly or pass the request on to the next handler in the route. Default is false.
+          "pass_thru": false,
           // [optional] timeout to terminate the command's process. Default is 10s.
           "timeout": "10s",
           // [optional] log output module config for standard output. Default is `stderr` module.
@@ -137,6 +141,8 @@ As an handler within a route.
           "directory": "/home/user/site/public",
           // [optional] if the command should run on the foreground. Default is false.
           "foreground": true,
+          // [optional] if the middleware should respond directly or pass the request on to the next handler in the route. Default is false.
+          "pass_thru": true,
           // [optional] timeout to terminate the command's process. Default is 10s.
           "timeout": "5s",
           // [optional] log output module config for standard output. Default is `stderr` module.
