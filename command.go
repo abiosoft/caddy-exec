@@ -31,6 +31,10 @@ type Cmd struct {
 	// foreground may prevent Caddy from starting.
 	Foreground bool `json:"foreground,omitempty"`
 
+	// Enables pass-thru mode, which continues to the next HTTP
+	// handler in the route instead of responding directly
+	PassThru bool `json:"pass_thru,omitempty"`
+
 	// Timeout for the command. The command will be killed
 	// after timeout has elapsed if it is still running.
 	// Defaults to 10s.

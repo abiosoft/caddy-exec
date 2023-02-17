@@ -23,18 +23,18 @@ func newCommandFromDispenser(d *caddyfile.Dispenser) (cmd Cmd, err error) {
 // parseHandlerCaddyfileBlock configures the handler directive from Caddyfile.
 // Syntax:
 //
-//   exec [<matcher>] [<command> [<args...>]] {
-//       command     <text>
-//       args        <text>...
-//       directory   <text>
-//       timeout     <duration>
-//       log         <log output module>
-//       err_log     <log output module>
-//       foreground
-//       startup
-//       shutdown
-//   }
-//
+//	  exec [<matcher>] [<command> [<args...>]] {
+//	    command     <text>
+//	    args        <text>...
+//	    directory   <text>
+//	    timeout     <duration>
+//	    log         <log output module>
+//	    err_log     <log output module>
+//	    foreground
+//	    pass_thru
+//	    startup
+//	    shutdown
+//	}
 func parseHandlerCaddyfileBlock(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
 	cmd, err := newCommandFromDispenser(h.Dispenser)
 	return Middleware{Cmd: cmd}, err
@@ -43,18 +43,18 @@ func parseHandlerCaddyfileBlock(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHan
 // parseGlobalCaddyfileBlock configures the "exec" global option from Caddyfile.
 // Syntax:
 //
-//   exec [<command> [<args...>]] {
-//       command     <text>...
-//       args        <text>...
-//       directory   <text>
-//       timeout     <duration>
-//       log         <log output module>
-//       err_log     <log output module>
-//       foreground
-//       startup
-//       shutdown
-//   }
-//
+//	  exec [<command> [<args...>]] {
+//	    command     <text>...
+//	    args        <text>...
+//	    directory   <text>
+//	    timeout     <duration>
+//	    log         <log output module>
+//	    err_log     <log output module>
+//	    foreground
+//	    pass_thru
+//	    startup
+//	    shutdown
+//	}
 func parseGlobalCaddyfileBlock(d *caddyfile.Dispenser, prev interface{}) (interface{}, error) {
 	var exec App
 
@@ -91,18 +91,18 @@ func parseGlobalCaddyfileBlock(d *caddyfile.Dispenser, prev interface{}) (interf
 // UnmarshalCaddyfile configures the handler directive from Caddyfile.
 // Syntax:
 //
-//   exec [<matcher>] [<command> [<args...>]] {
-//       command     <text>
-//       args        <text>...
-//       directory   <text>
-//       timeout     <duration>
-//       log         <log output module>
-//       err_log     <log output module>
-//       foreground
-//       startup
-//       shutdown
-//   }
-//
+//	  exec [<matcher>] [<command> [<args...>]] {
+//	    command     <text>
+//	    args        <text>...
+//	    directory   <text>
+//	    timeout     <duration>
+//	    log         <log output module>
+//	    err_log     <log output module>
+//	    foreground
+//	    pass_thru
+//	    startup
+//	    shutdown
+//	}
 func (c *Cmd) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	// consume "exec", then grab the command, if present.
 	if d.NextArg() && d.NextArg() {
@@ -138,6 +138,8 @@ func (c *Cmd) unmarshalBlock(d *caddyfile.Dispenser) error {
 			}
 		case "foreground":
 			c.Foreground = true
+		case "pass_thru":
+			c.PassThru = true
 		case "startup":
 			c.At = append(c.At, "startup")
 		case "shutdown":
