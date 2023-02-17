@@ -23,7 +23,7 @@ func newCommandFromDispenser(d *caddyfile.Dispenser) (cmd Cmd, err error) {
 // parseHandlerCaddyfileBlock configures the handler directive from Caddyfile.
 // Syntax:
 //
-//	exec [<matcher>] [<command> [<args...>]] {
+//	  exec [<matcher>] [<command> [<args...>]] {
 //	    command     <text>
 //	    args        <text>...
 //	    directory   <text>
@@ -43,7 +43,7 @@ func parseHandlerCaddyfileBlock(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHan
 // parseGlobalCaddyfileBlock configures the "exec" global option from Caddyfile.
 // Syntax:
 //
-//	exec [<command> [<args...>]] {
+//	  exec [<command> [<args...>]] {
 //	    command     <text>...
 //	    args        <text>...
 //	    directory   <text>
@@ -91,7 +91,7 @@ func parseGlobalCaddyfileBlock(d *caddyfile.Dispenser, prev interface{}) (interf
 // UnmarshalCaddyfile configures the handler directive from Caddyfile.
 // Syntax:
 //
-//	exec [<matcher>] [<command> [<args...>]] {
+//	  exec [<matcher>] [<command> [<args...>]] {
 //	    command     <text>
 //	    args        <text>...
 //	    directory   <text>
