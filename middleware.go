@@ -42,9 +42,11 @@ func (m Middleware) Validate() error { return m.Cmd.validate() }
 func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
 
+	argv := make([]string, len(m.Args))
 	for index, argument := range m.Args {
-		m.Args[index] = repl.ReplaceAll(argument, "")
+		argv[index] = repl.ReplaceAll(argument, "")
 	}
+	m.Argv = argv
 
 	err := m.run()
 
@@ -75,5 +77,6 @@ func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddy
 // Cleanup implements caddy.Cleanup
 // TODO: ensure all running processes are terminated.
 func (m *Middleware) Cleanup() error {
+	m.Argv = nil
 	return nil
 }
