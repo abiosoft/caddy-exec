@@ -17,8 +17,7 @@ type Cmd struct {
 	Command string `json:"command,omitempty"`
 
 	// The command args.
-	Args []string
-	Argv []string `json:"args,omitempty"`
+	Args []string `json:"args,omitempty"`
 
 	// The directory to run the command from.
 	// Defaults to current directory.

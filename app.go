@@ -41,20 +41,27 @@ func (a *App) Provision(ctx caddy.Context) error {
 	}
 
 	a.log = ctx.Logger(a)
+	repl := caddy.NewReplacer()
 	for _, cmd := range a.Commands {
 		if err := cmd.provision(ctx, a); err != nil {
 			return err
 		}
-		a.addCmd(cmd)
+
+		// replace global placeholders
+		argv := make([]string, len(cmd.Args))
+		for index, argument := range cmd.Args {
+			argv[index] = repl.ReplaceAll(argument, "")
+		}
+
+		runner := runnerFunc(func() error {
+			return cmd.run(argv)
+		})
+
+		for at := range cmd.at {
+			a.commands[at] = append(a.commands[at], runner)
+		}
 	}
 	return nil
-}
-
-func (a *App) addCmd(c Cmd) {
-	runner := runnerFunc(c.run)
-	for at := range c.at {
-		a.commands[at] = append(a.commands[at], runner)
-	}
 }
 
 // Validate implements caddy.Validator
